@@ -1,0 +1,11 @@
+survived,pclass,name,sex,age,fare
+1,1,Allen Miss Elisabeth,female,29.0,211.34
+1,1,Allison Master Hudson,male,0.92,151.55
+0,1,Allison Miss Helen,female,,151.55
+0,1,Allison Mr Hudson,male,,151.55
+0,1,Allison Mrs Hudson,female,25.0,151.55
+1,1,Anderson Mr Harry,male,48.0,26.55
+1,1,Andrews Miss Kornelia,female,63.0,77.96
+0,1,Andrews Mr Thomas,male,39.0,0.0
+1,1,Appleton Mrs Edward,female,53.0,51.48
+0,1,Artagaveytia Mr Ramon,male,71.0,49.5
