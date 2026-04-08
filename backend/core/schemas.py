@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
+import json
 
 from backend.core.models import DatasetStatus, ExperimentStatus, MessageType, ProblemType
 from datetime import datetime
@@ -25,12 +26,27 @@ class DatasetRead(DatasetBase):
     row_count: int
     column_count: int
     upload_timestamp: datetime
-    # Null until background profiling task completes
     profile_path: Optional[str] = None
+    target_column: Optional[str] = None
+    # Null until upload parsing completes
+    inferred_schema_json: Optional[str] = None
+
+    @computed_field
+    @property
+    def inferred_schema(self) -> dict | None:
+        # Deserialize inferred_schema_json into a dict for API responses
+        if self.inferred_schema_json is None:
+            return None
+        return json.loads(self.inferred_schema_json)
 
     @field_serializer("upload_timestamp")
     def serialize_upload_timestamp(self, dt: datetime) -> str:
         return to_utc7(dt).isoformat()
+
+class DatasetUpdate(BaseModel):
+    # Fields allowed for dataset update
+    problem_type: ProblemType | None = None
+    target_column: str | None = None
 
 
 # PreprocessingConfig

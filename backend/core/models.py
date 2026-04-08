@@ -47,6 +47,8 @@ class Dataset(Base):
     problem_type = Column(Enum(ProblemType), nullable=True)
     status = Column(Enum(DatasetStatus), nullable=False, default=DatasetStatus.pending)
     profile_path = Column(String, nullable=True)
+    target_column = Column(String, nullable=True)
+    inferred_schema_json = Column(Text, nullable=True)
 
     preprocessing_configs = relationship("PreprocessingConfig", back_populates="dataset")
     experiments = relationship("Experiment", back_populates="dataset")
