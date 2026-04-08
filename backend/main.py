@@ -22,6 +22,7 @@ _STORAGE_SUBDIRS = [
 async def lifespan(app: FastAPI):
     # Run startup tasks before the app begins serving requests
     configure_logging(settings.log_level)
+    Path(settings.storage_dir).mkdir(parents=True, exist_ok=True)
     await init_db()
     storage = Path(settings.storage_dir)
     for subdir in _STORAGE_SUBDIRS:
