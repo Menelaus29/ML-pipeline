@@ -5,9 +5,11 @@ from pydantic import BaseModel, ConfigDict, computed_field
 import json
 
 from backend.core.models import DatasetStatus, ExperimentStatus, MessageType, ProblemType
-from datetime import datetime
 from pydantic import field_serializer
 from backend.core.utils import to_utc7
+
+from enum import Enum
+from pydantic import model_validator
 
 # Dataset
 class DatasetBase(BaseModel):
@@ -50,12 +52,59 @@ class DatasetUpdate(BaseModel):
 
 
 # PreprocessingConfig
+class ColumnType(str, Enum):
+    numerical = "numerical"
+    categorical = "categorical"
+    text = "text"
+
+class NumericalStrategy(str, Enum):
+    standardize = "standardize"
+    normalize = "normalize"
+    robust = "robust"
+    none = "none"
+
+class CategoricalStrategy(str, Enum):
+    onehot = "onehot"
+    label = "label"
+    ordinal = "ordinal"
+    none = "none"
+
+class TextStrategy(str, Enum):
+    tfidf = "tfidf"
+    count = "count"
+    none = "none"
+
+# Maps each column type to its valid strategies
+_VALID_STRATEGIES: dict[ColumnType, set[str]] = {
+    ColumnType.numerical: {s.value for s in NumericalStrategy},
+    ColumnType.categorical: {s.value for s in CategoricalStrategy},
+    ColumnType.text: {s.value for s in TextStrategy},
+}
+
+class ColumnConfig(BaseModel):
+    """Validates a single column's preprocessing config entry."""
+    type: ColumnType
+    strategy: str
+    is_target: bool = False
+
+    @model_validator(mode="after")
+    def strategy_must_match_type(self) -> "ColumnConfig":
+        allowed = _VALID_STRATEGIES[self.type]
+        if self.strategy not in allowed:
+            raise ValueError(
+                f"Strategy '{self.strategy}' is not valid for type '{self.type}'. "
+                f"Allowed: {sorted(allowed)}"
+            )
+        return self
+
 class PreprocessingConfigBase(BaseModel):
     label: str
     config_json: str
 
-class PreprocessingConfigCreate(PreprocessingConfigBase):
+class PreprocessingConfigCreate(BaseModel):
     dataset_id: str
+    label: str
+    config: dict[str, ColumnConfig]
 
 class PreprocessingConfigRead(PreprocessingConfigBase):
     model_config = ConfigDict(from_attributes=True)
