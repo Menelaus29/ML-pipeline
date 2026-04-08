@@ -14,3 +14,15 @@ decision.
 Ollama starts automatically on Windows after installation (system tray icon).
 To start manually if needed:
 `ollama serve`
+
+## Docker Desktop Setup (Windows)
+
+Docker Desktop installed on Windows using WSL2 backend.
+
+### Notes
+- On Windows/Mac, host.docker.internal automatically resolves to the
+  host machine from inside any container. No extra_hosts configuration
+  needed in docker-compose.yml for Windows (unlike Linux).
+- This means the backend container can reach Ollama at
+  http://host.docker.internal:11434 without any additional setup.
+
