@@ -1,12 +1,15 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from backend.core.utils import UTC7Formatter
+import logging
+
+def configure_logging(log_level: str = "INFO") -> None:
+    # Configure root logger with UTC+7 timestamps
+    handler = logging.StreamHandler()
+    handler.setFormatter(UTC7Formatter(fmt="%(asctime)s %(levelname)s %(name)s %(message)s"))
+    logging.basicConfig(level=log_level, handlers=[handler])
 
 class Settings(BaseSettings):
-    """
-    Application settings loaded from environment variables.
-    Falls back to defaults if variables are not set.
-    During local dev: values come from .env file.
-    Inside Docker: values come from docker-compose env_file.
-    """
+    # Application settings loaded from environment variables.
 
     # Ollama LLM
     ollama_url: str = "http://localhost:11434"
@@ -29,5 +32,4 @@ class Settings(BaseSettings):
     )
 
 
-# Single instance imported everywhere in the app
 settings = Settings()

@@ -4,7 +4,9 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 from backend.core.models import DatasetStatus, ExperimentStatus, MessageType, ProblemType
-
+from datetime import datetime
+from pydantic import field_serializer
+from backend.core.utils import to_utc7
 
 # Dataset
 class DatasetBase(BaseModel):
@@ -26,6 +28,10 @@ class DatasetRead(DatasetBase):
     # Null until background profiling task completes
     profile_path: Optional[str] = None
 
+    @field_serializer("upload_timestamp")
+    def serialize_upload_timestamp(self, dt: datetime) -> str:
+        return to_utc7(dt).isoformat()
+
 
 # PreprocessingConfig
 class PreprocessingConfigBase(BaseModel):
@@ -41,6 +47,10 @@ class PreprocessingConfigRead(PreprocessingConfigBase):
     id: str
     dataset_id: str
     created_at: datetime
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, dt: datetime) -> str:
+        return to_utc7(dt).isoformat()
 
 
 # Experiment
@@ -60,6 +70,14 @@ class ExperimentRead(BaseModel):
     created_at: datetime
     # Null until results are uploaded
     completed_at: Optional[datetime] = None
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, dt: datetime) -> str:
+        return to_utc7(dt).isoformat()
+
+    @field_serializer("completed_at")
+    def serialize_completed_at(self, dt: datetime | None) -> str | None:
+        return to_utc7(dt).isoformat() if dt is not None else None
 
 
 # ModelVersion
@@ -107,6 +125,10 @@ class AgentLogRead(AgentLogBase):
     experiment_id: Optional[str] = None
     created_at: datetime
 
+    @field_serializer("created_at")
+    def serialize_created_at(self, dt: datetime) -> str:
+        return to_utc7(dt).isoformat()
+
 
 # Prediction
 class PredictionBase(BaseModel):
@@ -121,3 +143,7 @@ class PredictionRead(PredictionBase):
 
     id: str
     predicted_at: datetime
+
+    @field_serializer("predicted_at")
+    def serialize_predicted_at(self, dt: datetime) -> str:
+        return to_utc7(dt).isoformat()

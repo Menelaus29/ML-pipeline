@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean, Column, DateTime, Enum, ForeignKey,
@@ -8,6 +8,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from backend.core.database import Base
+from backend.core.utils import utcnow
 
 class ProblemType(str, enum.Enum):
     classification = "classification"
@@ -40,7 +41,7 @@ class Dataset(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
     filepath = Column(String, nullable=False)
-    upload_timestamp = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    upload_timestamp = Column(DateTime(timezone=True), nullable=False, default=utcnow)
     row_count = Column(Integer, nullable=False)
     column_count = Column(Integer, nullable=False)
     problem_type = Column(Enum(ProblemType), nullable=True)
@@ -57,7 +58,7 @@ class PreprocessingConfig(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     dataset_id = Column(String(36), ForeignKey("datasets.id"), nullable=False)
     config_json = Column(Text, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
     label = Column(String, nullable=False)
 
     dataset = relationship("Dataset", back_populates="preprocessing_configs")
@@ -74,8 +75,8 @@ class Experiment(Base):
     tuning_config_json = Column(Text, nullable=True)
     notebook_path = Column(String, nullable=True)
     status = Column(Enum(ExperimentStatus), nullable=False, default=ExperimentStatus.pending)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
 
     dataset = relationship("Dataset", back_populates="experiments")
     preprocessing_config = relationship("PreprocessingConfig", back_populates="experiments")
@@ -95,7 +96,7 @@ class ModelVersion(Base):
     artifact_path = Column(String, nullable=False)
     parameters_json = Column(Text, nullable=False)
     cluster_labels_path = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
     notes = Column(String, nullable=True)
     is_active = Column(Boolean, nullable=False, default=False)
 
@@ -111,7 +112,7 @@ class AgentLog(Base):
     experiment_id = Column(String(36), ForeignKey("experiments.id"), nullable=True)
     agent_name = Column(String, nullable=False)
     message = Column(Text, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
     message_type = Column(Enum(MessageType), nullable=False, default=MessageType.info)
 
     experiment = relationship("Experiment", back_populates="agent_logs")
@@ -124,6 +125,6 @@ class Prediction(Base):
     model_version_id = Column(String(36), ForeignKey("model_versions.id"), nullable=False)
     input_json = Column(Text, nullable=False)
     output_json = Column(Text, nullable=False)
-    predicted_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    predicted_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
     model_version = relationship("ModelVersion", back_populates="predictions")
