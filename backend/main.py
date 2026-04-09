@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.core.config import configure_logging, settings
 from backend.core.database import init_db
 from backend.api.datasets import router as datasets_router
+from backend.api.pipelines import router as pipelines_router
 
 _STORAGE_SUBDIRS = [
     "datasets",
@@ -41,3 +42,4 @@ app.add_middleware(
 )
 
 app.include_router(datasets_router)
+app.include_router(pipelines_router)
