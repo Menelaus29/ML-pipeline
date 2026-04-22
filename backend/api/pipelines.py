@@ -6,8 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.database import get_db
 from backend.core.models import Dataset, PreprocessingConfig
-from backend.core.schemas import PreprocessingConfigCreate, PreprocessingConfigRead
-from backend.services.preprocessing import serialize_pipeline_config
+from backend.core.schemas import (
+    FullPreprocessingConfig,
+    PreprocessingConfigCreate,
+    PreprocessingConfigRead,
+)
+from backend.services.preprocessing import serialize_full_config
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +23,7 @@ async def create_preprocessing_config(
     payload: PreprocessingConfigCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    # Validate + serialize + store a preprocessing config for a dataset
+    """Validate, serialise, and store a full four-section preprocessing config for a dataset."""
     dataset = await db.get(Dataset, payload.dataset_id)
     if dataset is None:
         raise HTTPException(status_code=404, detail=f"Dataset {payload.dataset_id} not found.")
@@ -27,7 +31,7 @@ async def create_preprocessing_config(
     record = PreprocessingConfig(
         dataset_id=payload.dataset_id,
         label=payload.label,
-        config_json=serialize_pipeline_config(payload.config),
+        config_json=serialize_full_config(payload.config),
     )
     db.add(record)
     await db.flush()
@@ -44,7 +48,7 @@ async def get_preprocessing_config(
     config_id: str,
     db: AsyncSession = Depends(get_db),
 ):
-    # Return a single preprocessing config by its ID
+    """Return a single preprocessing config by its ID."""
     record = await db.get(PreprocessingConfig, config_id)
     if record is None:
         raise HTTPException(status_code=404, detail=f"Preprocessing config {config_id} not found.")
@@ -56,7 +60,7 @@ async def list_preprocessing_configs(
     dataset_id: str,
     db: AsyncSession = Depends(get_db),
 ):
-    # Return all preprocessing configs for a dataset, ordered by created_at ascending
+    """Return all preprocessing configs for a dataset, ordered by created_at ascending."""
     result = await db.execute(
         select(PreprocessingConfig)
         .where(PreprocessingConfig.dataset_id == dataset_id)
@@ -70,10 +74,11 @@ async def delete_preprocessing_config(
     config_id: str,
     db: AsyncSession = Depends(get_db),
 ):
-    # Delete a preprocessing config by its ID 
+    """Delete a preprocessing config by its ID."""
     record = await db.get(PreprocessingConfig, config_id)
     if record is None:
         raise HTTPException(status_code=404, detail=f"Preprocessing config {config_id} not found.")
 
     await db.delete(record)
+    await db.commit()  # BUG FIX: was missing — deletion was never persisted
     logger.info("Deleted preprocessing config %s", config_id)
