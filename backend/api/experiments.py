@@ -113,6 +113,9 @@ async def create_experiment(
     db.add(experiment)
     await db.flush()
     await db.refresh(experiment)
+    # Commit BEFORE queuing the background task so the new session inside
+    # _generate_notebook_task can find the experiment row immediately.
+    await db.commit()
 
     # Trigger notebook generation
     background_tasks.add_task(_generate_notebook_task, experiment.id)
