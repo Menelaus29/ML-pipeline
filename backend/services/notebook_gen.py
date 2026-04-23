@@ -195,7 +195,7 @@ def _supervised_preprocessing_cell(full_config: dict, target_column: str, proble
     return _nb_code(*lines)
 
 
-def _supervised_train_cell(models_config: list[dict], tuning_config: dict, problem_type: str) -> nbformat.NotebookNode:
+def _supervised_train_cell(models_config: list[dict], tuning_config: dict, problem_type: str, experiment_id: str = "EXPERIMENT_ID") -> nbformat.NotebookNode:
     lines = [
         "import time, json, joblib",
         "from sklearn.linear_model import LogisticRegression, Ridge, Lasso",
@@ -249,14 +249,16 @@ def _supervised_train_cell(models_config: list[dict], tuning_config: dict, probl
         lines += [
             f"_results.append({{'name':{mname!r},'parameters':{params!r},'best_params':best_params,",
             "    'metrics':_metrics,'cv_scores':{'mean':float(_cv.mean()),'std':float(_cv.std()),'folds':_cv.tolist()},",
-            "    'confusion_matrix':_cm,'feature_importances':_fi}})",
-            "joblib.dump(model, f'{" + mname + "}_model.joblib')",
+            "    'confusion_matrix':_cm,'feature_importances':_fi})",
+            # BUG FIX: use a plain string literal filename, not an f-string referencing the class object
+            f"joblib.dump(model, '{mname}_model.joblib')",
             f"print('Done: {mname}', _metrics)",
         ]
     lines += [
         "\n_duration = time.time() - _t0",
         "import datetime",
-        "_out = {'experiment_id': 'EXPERIMENT_ID', 'problem_type': '" + problem_type + "',",
+        # BUG FIX: embed the real experiment_id, not the literal string 'EXPERIMENT_ID'
+        f"_out = {{'experiment_id': {experiment_id!r}, 'problem_type': {problem_type!r},",
         "        'models': _results, 'training_duration_seconds': _duration,",
         "        'timestamp': datetime.datetime.utcnow().isoformat()}",
         "with open('results.json','w') as f: json.dump(_out, f, indent=2)",
@@ -293,7 +295,8 @@ def generate_supervised_notebook(
         _supervised_install_cell(),
         _supervised_load_cell(dataset_path, dataset_path.suffix.lower()),
         _supervised_preprocessing_cell(full_config, target_column or "target", problem_type),
-        _supervised_train_cell(models_config, tuning_config, problem_type),
+        # Pass experiment_id so the notebook writes the real ID into results.json
+        _supervised_train_cell(models_config, tuning_config, problem_type, experiment_id=experiment_id),
     ]
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -364,7 +367,7 @@ def _clustering_pca_cell() -> nbformat.NotebookNode:
     )
 
 
-def _clustering_train_cell(models_config: list[dict]) -> nbformat.NotebookNode:
+def _clustering_train_cell(models_config: list[dict], experiment_id: str = "EXPERIMENT_ID") -> nbformat.NotebookNode:
     lines = [
         "import time, json, joblib, numpy as np",
         "from sklearn.cluster import KMeans, DBSCAN",
@@ -436,9 +439,9 @@ def _clustering_train_cell(models_config: list[dict]) -> nbformat.NotebookNode:
             # pca projection coloured by label
             "_pca_section = {'x': pca_x, 'y': pca_y, 'labels': labels.tolist()}",
             f"_results.append({{'name':{mname!r},'parameters':_params,'metrics':_metrics,",
-            "    'elbow_data':elbow_data,'cluster_label_counts':_label_counts,'pca_projection':_pca_section}})",
-            # Save cluster labels
-            "with open(f'cluster_labels_{" + mname + "}.json','w') as f: json.dump(labels.tolist(),f)",
+            "    'elbow_data':elbow_data,'cluster_label_counts':_label_counts,'pca_projection':_pca_section})",
+            # BUG FIX: plain string literal, not f-string referencing the class object
+            f"with open('cluster_labels_{mname}.json','w') as f: json.dump(labels.tolist(),f)",
             f"joblib.dump(model, '{mname}_model.joblib')",
             f"print('Done: {mname}', _metrics)",
         ]
@@ -446,7 +449,8 @@ def _clustering_train_cell(models_config: list[dict]) -> nbformat.NotebookNode:
     lines += [
         "\n_duration = time.time() - _t0",
         "import datetime",
-        "_out = {'experiment_id':'EXPERIMENT_ID','problem_type':'clustering',",
+        # BUG FIX: embed real experiment_id as a string literal, not a variable reference
+        f"_out = {{'experiment_id': {experiment_id!r}, 'problem_type': 'clustering',",
         "        'models':_results,'training_duration_seconds':_duration,",
         "        'timestamp':datetime.datetime.utcnow().isoformat()}",
         "with open('results.json','w') as f: json.dump(_out,f,indent=2)",
@@ -472,7 +476,7 @@ def generate_clustering_notebook(
         _supervised_load_cell(dataset_path, dataset_path.suffix.lower()),
         _clustering_preprocess_cell(full_config),
         _clustering_pca_cell(),
-        _clustering_train_cell(models_config),
+        _clustering_train_cell(models_config, experiment_id=experiment_id),
     ]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
